@@ -1,0 +1,1539 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SecureVault - Professional Security Platform</title>
+    <!-- Console Notice Filter for CDN Development Libraries -->
+    <script>
+        const _warn = console.warn;
+        console.warn = function(...args) {
+            if (args[0] && typeof args[0] === 'string' && (
+                args[0].includes('cdn.tailwindcss.com should not be used in production') ||
+                args[0].includes('You are using the in-browser Babel transformer')
+            )) {
+                return;
+            }
+            _warn.apply(console, args);
+        };
+    </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.10/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
+    
+    <!-- Firebase SDKs (Compat for standalone browser environment) -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-storage-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-analytics-compat.js"></script>
+
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #0f172a; overflow: hidden; }
+        .sidebar { height: 100vh; }
+        input[type="file"] { display: none; }
+        .modal-bg { background-color: rgba(15, 23, 42, 0.85); backdrop-filter: blur(12px); }
+        .google-modal-bg { background-color: rgba(0, 0, 0, 0.65); backdrop-filter: blur(8px); }
+        
+        @keyframes float { 0% { transform: translateY(0px); } 50% { transform: translateY(-10px) scale(1.02); } 100% { transform: translateY(0px); } }
+        @keyframes pulse-glow { 0% { box-shadow: 0 0 0 0 rgba(56, 189, 248, 0.5); } 70% { box-shadow: 0 0 0 35px rgba(56, 189, 248, 0); } 100% { box-shadow: 0 0 0 0 rgba(56, 189, 248, 0); } }
+        @keyframes fade-out-splash { from { opacity: 1; transform: scale(1); filter: blur(0px); } to { opacity: 0; transform: scale(1.1); filter: blur(10px); visibility: hidden; } }
+        @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes slideInLeft { from { opacity: 0; transform: translateX(-30px); } to { opacity: 1; transform: translateX(0); } }
+
+        @keyframes spin-dial { 0% { transform: rotate(0deg); } 20% { transform: rotate(180deg); } 40% { transform: rotate(180deg); } 60% { transform: rotate(90deg); } 80% { transform: rotate(90deg); } 100% { transform: rotate(360deg); } }
+        @keyframes lock-pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.15); color: #fff; } }
+        @keyframes scan-line { 0% { transform: translateY(-100%); opacity: 0; } 10% { opacity: 1; } 90% { opacity: 1; } 100% { transform: translateY(100%); opacity: 0; } }
+        
+        .animate-float { animation: float 3.5s ease-in-out infinite; }
+        .animate-glow { animation: pulse-glow 2.5s infinite; }
+        .splash-exit { animation: fade-out-splash 0.8s ease-in-out forwards; }
+
+        .bg-vault-pattern { background-color: #0f172a; background-image: linear-gradient(rgba(56, 189, 248, 0.08) 1px, transparent 1px), linear-gradient(90deg, rgba(56, 189, 248, 0.08) 1px, transparent 1px); background-size: 40px 40px; background-position: center center; }
+        .bg-dashboard { background-color: #0f172a; background-image: radial-gradient(circle at 10% 50%, rgba(56, 189, 248, 0.1), transparent 30%), radial-gradient(circle at 90% 20%, rgba(99, 102, 241, 0.1), transparent 30%), linear-gradient(rgba(255,255,255,0.015) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.015) 1px, transparent 1px); background-size: 100% 100%, 100% 100%, 30px 30px, 30px 30px; background-attachment: fixed; }
+
+        .card-animated { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+        .card-animated:hover { transform: translateY(-4px) scale(1.01); box-shadow: 0 16px 32px -8px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(56, 189, 248, 0.5); }
+        .table-row-animated { transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1); border-left: 3px solid transparent; }
+        .table-row-animated:hover { background-color: #f8fafc !important; transform: translateX(4px); border-left: 3px solid #38bdf8; box-shadow: 0 4px 12px -4px rgba(0,0,0,0.05); }
+        .btn-hover { transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); }
+        .btn-hover:hover { transform: translateY(-2px); box-shadow: 0 6px 16px -4px rgba(56, 189, 248, 0.4); }
+        .btn-action-hover { transition: all 0.2s ease; }
+        .btn-action-hover:hover { transform: scale(1.15) rotate(-5deg); }
+
+        @keyframes slideOutAndFade { 0% { opacity: 1; transform: translateX(0) scale(1); } 50% { opacity: 0.5; transform: translateX(20px) scale(0.98); background-color: #fee2e2; } 100% { opacity: 0; transform: translateX(50px) scale(0.95); display: none; } }
+        @keyframes restoreAndFade { 0% { opacity: 1; transform: translateX(0) scale(1); } 50% { opacity: 0.5; transform: translateX(-20px) scale(0.98); background-color: #dcfce3; } 100% { opacity: 0; transform: translateX(-50px) scale(0.95); display: none; } }
+        .animate-delete { animation: slideOutAndFade 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards !important; pointer-events: none; }
+        .animate-restore { animation: restoreAndFade 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards !important; pointer-events: none; }
+
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.1); border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.2); }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useRef, useEffect } = React;
+
+        // Firebase Configuration & Initialization
+        const firebaseConfig = {
+            apiKey: "AIzaSyCkGOY2tmSnSKTslmSnaFWR30hj3zTSFaQ",
+            authDomain: "vault-902c1.firebaseapp.com",
+            projectId: "vault-902c1",
+            storageBucket: "vault-902c1.firebasestorage.app",
+            messagingSenderId: "844683458136",
+            appId: "1:844683458136:web:265f50936b6e9fffc3fc2d",
+            measurementId: "G-8QH2EYPQ3C"
+        };
+
+        let fbApp, fbAuth, fbDb, fbStorage, fbAnalytics;
+        try {
+            if (!firebase.apps.length) {
+                fbApp = firebase.initializeApp(firebaseConfig);
+            } else {
+                fbApp = firebase.app();
+            }
+            fbAuth = firebase.auth();
+            fbDb = firebase.firestore();
+            fbStorage = firebase.storage();
+            if (typeof firebase.analytics === 'function') {
+                fbAnalytics = firebase.analytics();
+            }
+            console.log("🔥 Firebase initialized successfully with project: vault-902c1");
+        } catch (error) {
+            console.error("Firebase init warning:", error);
+        }
+
+        const GoogleIcon = () => (
+            <svg className="w-5 h-5 flex-shrink-0" viewBox="0 0 24 24">
+                <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+                <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+                <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" />
+                <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" />
+            </svg>
+        );
+
+        const defaultSectors = [
+            { name: 'Identity', icon: 'fa-id-card', color: 'text-blue-500', bg: 'bg-blue-100', isCustom: false },
+            { name: 'Education', icon: 'fa-graduation-cap', color: 'text-yellow-500', bg: 'bg-yellow-100', isCustom: false },
+            { name: 'Finance', icon: 'fa-money-bill-wave', color: 'text-green-500', bg: 'bg-green-100', isCustom: false },
+            { name: 'Health', icon: 'fa-heart-pulse', color: 'text-red-500', bg: 'bg-red-100', isCustom: false },
+            { name: 'Travel', icon: 'fa-plane', color: 'text-teal-500', bg: 'bg-teal-100', isCustom: false },
+            { name: 'Legal', icon: 'fa-scale-balanced', color: 'text-purple-500', bg: 'bg-purple-100', isCustom: false },
+            { name: 'Employment', icon: 'fa-briefcase', color: 'text-indigo-500', bg: 'bg-indigo-100', isCustom: false }
+        ];
+
+        const initialMockDocs = [];
+
+        // Persistent Storage Helper (Firestore with IndexedDB fallback)
+        const DB_NAME = 'SecureVaultStorage';
+        const DB_VERSION = 1;
+
+        const openDB = () => {
+            return new Promise((resolve, reject) => {
+                const request = indexedDB.open(DB_NAME, DB_VERSION);
+                request.onupgradeneeded = (e) => {
+                    const db = e.target.result;
+                    if (!db.objectStoreNames.contains('userData')) {
+                        db.createObjectStore('userData', { keyPath: 'userId' });
+                    }
+                };
+                request.onsuccess = () => resolve(request.result);
+                request.onerror = () => reject(request.error);
+            });
+        };
+
+        const loadUserDataFromDB = async (userId) => {
+            try {
+                let firestoreData = null;
+                // Try Firestore first if available
+                if (fbDb) {
+                    try {
+                        const userDocRef = await fbDb.collection('users').doc(userId).get();
+                        let sectors = defaultSectors;
+                        if (userDocRef.exists) {
+                            const userData = userDocRef.data();
+                            if (userData.sectors && Array.isArray(userData.sectors)) {
+                                sectors = userData.sectors;
+                            }
+                        }
+
+                        // Load individual documents from subcollection
+                        const docsSnapshot = await fbDb.collection('users').doc(userId).collection('vault_documents').get();
+                        if (!docsSnapshot.empty) {
+                            const loadedDocs = docsSnapshot.docs.map(doc => doc.data());
+                            firestoreData = { documents: loadedDocs, sectors };
+                        } else if (userDocRef.exists && userDocRef.data().documents) {
+                            // Fallback if previously saved in parent doc
+                            firestoreData = { documents: userDocRef.data().documents, sectors };
+                        }
+                    } catch (firestoreErr) {
+                        console.warn("Firestore fetch warning:", firestoreErr);
+                    }
+                }
+
+                if (firestoreData && firestoreData.documents && firestoreData.documents.length > 0) {
+                    // Update local IndexedDB with latest Firestore data
+                    try {
+                        const db = await openDB();
+                        const transaction = db.transaction(['userData'], 'readwrite');
+                        transaction.objectStore('userData').put({ userId, ...firestoreData, updatedAt: Date.now() });
+                    } catch(e) {}
+                    return firestoreData;
+                }
+
+                // Fallback to IndexedDB
+                const db = await openDB();
+                return new Promise((resolve) => {
+                    const transaction = db.transaction(['userData'], 'readonly');
+                    const store = transaction.objectStore('userData');
+                    const request = store.get(userId);
+                    request.onsuccess = () => resolve(request.result || null);
+                    request.onerror = () => resolve(null);
+                });
+            } catch (err) {
+                console.error("Storage read error:", err);
+                return null;
+            }
+        };
+
+        const saveUserDataToDB = async (userId, data) => {
+            try {
+                // 1. Save to Firestore Cloud (Both sectors in user doc and individual documents in subcollection)
+                if (fbDb) {
+                    try {
+                        // Save user profile and sectors
+                        await fbDb.collection('users').doc(userId).set({
+                            sectors: data.sectors || defaultSectors,
+                            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                        }, { merge: true });
+
+                        // Save each document individually into subcollection
+                        if (data.documents && Array.isArray(data.documents)) {
+                            const batch = fbDb.batch();
+                            const subColRef = fbDb.collection('users').doc(userId).collection('vault_documents');
+                            
+                            // Save active and deleted documents
+                            for (const doc of data.documents) {
+                                const docRef = subColRef.doc(String(doc.id));
+                                batch.set(docRef, {
+                                    id: doc.id,
+                                    name: doc.name || 'Document',
+                                    category: doc.category || 'Identity',
+                                    date: doc.date || new Date().toISOString().split('T')[0],
+                                    size: doc.size || '1.0 MB',
+                                    isFavorite: !!doc.isFavorite,
+                                    isDeleted: !!doc.isDeleted,
+                                    isMock: !!doc.isMock,
+                                    fileUrl: doc.fileUrl || '',
+                                    fileType: doc.fileType || '',
+                                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                                }, { merge: true });
+                            }
+                            await batch.commit();
+                        }
+                    } catch (firestoreErr) {
+                        console.warn("Firestore sync warning:", firestoreErr);
+                    }
+                }
+
+                // 2. Also save to IndexedDB local replica for instant offline speed
+                const db = await openDB();
+                return new Promise((resolve, reject) => {
+                    const transaction = db.transaction(['userData'], 'readwrite');
+                    const store = transaction.objectStore('userData');
+                    const request = store.put({ userId, ...data, updatedAt: Date.now() });
+                    request.onsuccess = () => resolve(true);
+                    request.onerror = () => reject(request.error);
+                });
+            } catch (err) {
+                console.error("Storage write error:", err);
+            }
+        };
+
+        const deleteDocumentFromFirestore = async (userId, docId) => {
+            if (fbDb && userId && docId) {
+                try {
+                    await fbDb.collection('users').doc(userId).collection('vault_documents').doc(String(docId)).delete();
+                } catch(e) {
+                    console.warn("Firestore purge error:", e);
+                }
+            }
+        };
+
+        const SplashScreen = ({ onComplete }) => {
+            const [isExiting, setIsExiting] = useState(false);
+            useEffect(() => {
+                const timer1 = setTimeout(() => { setIsExiting(true); }, 2800); 
+                const timer2 = setTimeout(() => { onComplete(); }, 3600); 
+                return () => { clearTimeout(timer1); clearTimeout(timer2); };
+            }, [onComplete]);
+
+            return (
+                <div className={`fixed inset-0 z-[100] flex flex-col items-center justify-center bg-gradient-to-br from-slate-950 via-slate-900 to-indigo-950 ${isExiting ? 'splash-exit' : ''}`}>
+                    <div className="relative flex flex-col items-center">
+                        <div className="relative h-40 w-40 bg-sky-500/10 backdrop-blur-md rounded-full flex items-center justify-center animate-glow mb-8 border border-sky-400/20 overflow-hidden">
+                            <div className="absolute inset-0 bg-gradient-to-b from-transparent via-sky-400/30 to-transparent h-full w-full" style={{ animation: 'scan-line 2s linear infinite' }}></div>
+                            <i className="fa-solid fa-vault text-7xl text-sky-900 absolute opacity-50"></i>
+                            <i className="fa-solid fa-circle-notch text-[5.5rem] text-sky-500/40 absolute" style={{ animation: 'spin-dial 4s cubic-bezier(0.68, -0.55, 0.265, 1.55) infinite' }}></i>
+                            <i className="fa-solid fa-circle-notch text-[4.5rem] text-sky-400/60 absolute" style={{ animation: 'spin-dial 3s cubic-bezier(0.68, -0.55, 0.265, 1.55) infinite reverse' }}></i>
+                            <i className="fa-solid fa-lock text-4xl text-sky-200 absolute z-10" style={{ animation: 'lock-pulse 2s infinite' }}></i>
+                        </div>
+                        <h1 className="text-5xl font-extrabold text-white tracking-tight mb-2 opacity-0" style={{ animation: 'fadeInUp 1s ease-out 0.5s forwards' }}>
+                            Secure<span className="text-sky-400">Vault</span>
+                        </h1>
+                        <p className="text-slate-400 text-lg font-medium opacity-0 tracking-wide" style={{ animation: 'fadeInUp 1s ease-out 0.8s forwards' }}>
+                            MILITARY-GRADE ENCRYPTION &bull; FIREBASE BACKED
+                        </p>
+                        <div className="flex gap-2 mt-12 opacity-0" style={{ animation: 'fadeIn 0.5s ease-out 1.2s forwards' }}>
+                            <div className="w-2.5 h-2.5 bg-sky-400 rounded-full" style={{ animation: 'float 1s infinite 0ms' }}></div>
+                            <div className="w-2.5 h-2.5 bg-sky-400 rounded-full" style={{ animation: 'float 1s infinite 200ms' }}></div>
+                            <div className="w-2.5 h-2.5 bg-sky-400 rounded-full" style={{ animation: 'float 1s infinite 400ms' }}></div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const AuthScreen = ({ onLogin }) => {
+            const [isLogin, setIsLogin] = useState(true);
+            const [isLoading, setIsLoading] = useState(false);
+            const [showPassword, setShowPassword] = useState(false);
+            const [authError, setAuthError] = useState('');
+            const isFileProtocol = typeof window !== 'undefined' && window.location.protocol === 'file:';
+
+            // Direct Firebase Google Sign In Handler
+            const handleFirebaseGoogleSignIn = async () => {
+                if (isFileProtocol) {
+                    setAuthError('Google Sign-In requires running over HTTP. Please click "Open via Local Server" above or visit http://localhost:8080');
+                    return;
+                }
+                if (!fbAuth) {
+                    setAuthError('Firebase Authentication is not available. Please verify network connection.');
+                    return;
+                }
+                setIsLoading(true);
+                setAuthError('');
+                try {
+                    const provider = new firebase.auth.GoogleAuthProvider();
+                    provider.addScope('profile');
+                    provider.addScope('email');
+                    provider.setCustomParameters({ prompt: 'select_account' });
+                    const result = await fbAuth.signInWithPopup(provider);
+                    const user = result.user;
+                    const displayName = user.displayName || (user.email ? user.email.split('@')[0] : 'Agent');
+
+                    // Strictly store user profile and initial sectors in Firebase Firestore
+                    if (fbDb) {
+                        try {
+                            await fbDb.collection('users').doc(user.uid).set({
+                                uid: user.uid,
+                                email: user.email,
+                                name: displayName,
+                                photoURL: user.photoURL || '',
+                                provider: 'google',
+                                sectors: defaultSectors,
+                                lastLoginAt: firebase.firestore.FieldValue.serverTimestamp()
+                            }, { merge: true });
+                        } catch (e) {
+                            console.warn("Firestore Google user sync:", e);
+                        }
+                    }
+
+                    onLogin({
+                        id: user.uid,
+                        email: user.email,
+                        name: displayName,
+                        avatar: user.photoURL || `https://api.dicebear.com/7.x/bottts/svg?seed=${user.email}`,
+                        isGoogle: true
+                    });
+                } catch (err) {
+                    console.error("Firebase Google Sign-In error:", err);
+                    if (err.code === 'auth/operation-not-supported-in-this-environment') {
+                        setAuthError({
+                            title: 'Local File Restriction (file://)',
+                            message: 'Google Sign-In cannot run on file:// protocol. Please open http://localhost:8080 in your browser.',
+                            link: 'http://localhost:8080',
+                            linkText: 'Open http://localhost:8080'
+                        });
+                    } else if (err.code === 'auth/configuration-not-found' || err.code === 'auth/operation-not-allowed') {
+                        setAuthError({
+                            title: 'Enable Google Sign-In in Firebase Console',
+                            message: 'Google Sign-In provider is not enabled yet for project "vault-902c1".',
+                            steps: [
+                                '1. Open Firebase Console Sign-in Providers (link below)',
+                                '2. Click "Google" under Additional providers',
+                                '3. Toggle "Enable", select project support email, then click "Save"'
+                            ],
+                            link: 'https://console.firebase.google.com/project/vault-902c1/authentication/providers',
+                            linkText: 'Open Firebase Console to Enable Google ↗'
+                        });
+                    } else if (err.code === 'auth/unauthorized-domain') {
+                        setAuthError({
+                            title: 'Domain Not Authorized',
+                            message: `The domain "${window.location.hostname}" must be added to Authorized Domains in Firebase Console.`,
+                            link: 'https://console.firebase.google.com/project/vault-902c1/authentication/settings',
+                            linkText: 'Open Firebase Auth Settings ↗'
+                        });
+                    } else if (err.code === 'auth/popup-blocked') {
+                        setAuthError('Sign-in popup was blocked by browser. Please allow popups for localhost:8080 and click again.');
+                    } else if (err.code === 'auth/popup-closed-by-user') {
+                        setAuthError('Google sign-in popup was closed before completing login.');
+                    } else {
+                        setAuthError(err.message || 'Failed to authenticate with Google.');
+                    }
+                } finally {
+                    setIsLoading(false);
+                }
+            };
+
+            const handleSubmit = async (e) => {
+                e.preventDefault();
+                setAuthError('');
+                setIsLoading(true);
+                const formData = new FormData(e.target);
+                const rawInput = (formData.get('email') || "").trim();
+                const password = formData.get('password') || "";
+                let name = (formData.get('name') || "").trim();
+
+                if (!rawInput || !password) {
+                    setIsLoading(false);
+                    setAuthError('Please enter both Clearance ID / Email and password.');
+                    return;
+                }
+
+                // Strictly normalize into a valid Firebase email
+                let firebaseEmail = rawInput.toLowerCase();
+                if (!firebaseEmail.includes('@')) {
+                    firebaseEmail = `${firebaseEmail}@securevault.io`;
+                }
+
+                if (!fbAuth) {
+                    setIsLoading(false);
+                    setAuthError('Firebase Authentication service is unavailable. Check your connection.');
+                    return;
+                }
+
+                try {
+                    if (isLogin) {
+                        const userCredential = await fbAuth.signInWithEmailAndPassword(firebaseEmail, password);
+                        const fbUser = userCredential.user;
+                        const userName = fbUser.displayName || rawInput.split('@')[0];
+                        
+                        // Strictly record login in Firestore
+                        if (fbDb) {
+                            try {
+                                await fbDb.collection('users').doc(fbUser.uid).set({
+                                    uid: fbUser.uid,
+                                    email: fbUser.email,
+                                    name: userName,
+                                    lastLoginAt: firebase.firestore.FieldValue.serverTimestamp()
+                                }, { merge: true });
+                            } catch(e) {
+                                console.warn("Firestore login sync:", e);
+                            }
+                        }
+
+                        setIsLoading(false);
+                        onLogin({
+                            id: fbUser.uid,
+                            email: fbUser.email,
+                            name: userName,
+                            isGoogle: false
+                        });
+                    } else {
+                        if (password.length < 6) {
+                            setIsLoading(false);
+                            setAuthError('Password must be at least 6 characters (Firebase Security Policy).');
+                            return;
+                        }
+
+                        const userCredential = await fbAuth.createUserWithEmailAndPassword(firebaseEmail, password);
+                        const fbUser = userCredential.user;
+                        const finalName = name || rawInput.split('@')[0];
+
+                        try {
+                            await fbUser.updateProfile({ displayName: finalName });
+                        } catch (e) {
+                            console.warn("Profile update warning:", e);
+                        }
+
+                        // Strictly store newly registered user identity & default sectors in Firestore
+                        if (fbDb) {
+                            try {
+                                await fbDb.collection('users').doc(fbUser.uid).set({
+                                    uid: fbUser.uid,
+                                    email: fbUser.email,
+                                    clearanceId: rawInput,
+                                    name: finalName,
+                                    sectors: defaultSectors,
+                                    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                                    lastLoginAt: firebase.firestore.FieldValue.serverTimestamp()
+                                }, { merge: true });
+                            } catch (e) {
+                                console.warn("Firestore user registration sync error:", e);
+                            }
+                        }
+
+                        setIsLoading(false);
+                        onLogin({
+                            id: fbUser.uid,
+                            email: fbUser.email,
+                            name: finalName,
+                            isGoogle: false
+                        });
+                    }
+                } catch (firebaseErr) {
+                    console.error("Firebase Auth error:", firebaseErr);
+                    setIsLoading(false);
+                    if (firebaseErr.code === 'auth/user-not-found' || firebaseErr.code === 'auth/wrong-password' || firebaseErr.code === 'auth/invalid-credential') {
+                        setAuthError('Access Denied: Invalid Clearance ID / Email or password.');
+                    } else if (firebaseErr.code === 'auth/email-already-in-use') {
+                        setAuthError('This ID / Email is already registered in Firebase. Please Unlock Vault instead.');
+                    } else if (firebaseErr.code === 'auth/weak-password') {
+                        setAuthError('Password must be at least 6 characters (Firebase Security Policy).');
+                    } else if (firebaseErr.code === 'auth/invalid-email') {
+                        setAuthError('Invalid Clearance ID / Email format.');
+                    } else if (firebaseErr.code === 'auth/too-many-requests') {
+                        setAuthError('Access temporarily blocked due to too many failed attempts. Try again later.');
+                    } else if (firebaseErr.code === 'auth/operation-not-allowed') {
+                        setAuthError('Email/Password provider is not enabled in Firebase Console (Authentication > Sign-in method).');
+                    } else {
+                        setAuthError(firebaseErr.message || 'Firebase Authentication failed.');
+                    }
+                }
+            };
+
+            return (
+                <div className="min-h-screen flex items-center justify-center bg-vault-pattern px-4 sm:px-6 lg:px-8 relative overflow-hidden">
+                    <div className="absolute top-1/4 -left-20 w-96 h-96 bg-sky-600 rounded-full mix-blend-screen filter blur-[100px] opacity-20 animate-pulse"></div>
+                    <div className="absolute bottom-1/4 -right-20 w-96 h-96 bg-indigo-600 rounded-full mix-blend-screen filter blur-[100px] opacity-20 animate-pulse" style={{ animationDelay: '2s' }}></div>
+
+                    <div className="max-w-md w-full space-y-8 bg-slate-900/80 backdrop-blur-2xl p-10 rounded-3xl shadow-[0_0_50px_rgba(0,0,0,0.5)] border border-slate-700/50 relative z-10 opacity-0" style={{ animation: 'fadeInUp 0.8s ease-out forwards' }}>
+                        <div className="text-center">
+                            <div className="relative mx-auto h-20 w-20 bg-sky-500/10 border border-sky-500/30 rounded-2xl flex items-center justify-center mb-5 shadow-[0_0_20px_rgba(56,189,248,0.2)] overflow-hidden group">
+                                <i className="fa-solid fa-vault text-4xl text-sky-900 absolute opacity-50 group-hover:opacity-30 transition-opacity"></i>
+                                <i className="fa-solid fa-circle-notch text-5xl text-sky-500/40 absolute" style={{ animation: 'spin-dial 4s cubic-bezier(0.68, -0.55, 0.265, 1.55) infinite' }}></i>
+                                <i className="fa-solid fa-lock text-2xl text-sky-200 absolute z-10 group-hover:text-white transition-colors" style={{ animation: 'lock-pulse 2s infinite' }}></i>
+                            </div>
+                            <h2 className="text-3xl font-extrabold text-white">SecureVault</h2>
+                            <div className="mt-2 flex items-center justify-center gap-2 text-xs font-semibold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 py-1 px-3 rounded-full w-max mx-auto">
+                                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                                Firebase Online &bull; vault-902c1
+                            </div>
+                        </div>
+
+                        {isFileProtocol && (
+                            <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-xl text-amber-300 text-xs font-semibold flex items-center justify-between gap-3">
+                                <div className="flex items-center gap-2">
+                                    <i className="fa-solid fa-triangle-exclamation text-amber-400 text-sm"></i>
+                                    <span>Opened via <code className="bg-amber-400/20 px-1 py-0.5 rounded">file://</code>. Google OAuth requires HTTP.</span>
+                                </div>
+                                <a 
+                                    href="http://localhost:8080" 
+                                    target="_blank" 
+                                    rel="noreferrer"
+                                    className="px-2.5 py-1 bg-amber-500 hover:bg-amber-400 text-slate-950 rounded-lg font-bold text-xs whitespace-nowrap transition-colors"
+                                >
+                                    Open localhost:8080
+                                </a>
+                            </div>
+                        )}
+                        
+                        {authError && (
+                            typeof authError === 'string' ? (
+                                <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-xl text-red-400 text-xs font-bold flex items-center gap-2">
+                                    <i className="fa-solid fa-triangle-exclamation text-base flex-shrink-0"></i>
+                                    <span>{authError}</span>
+                                </div>
+                            ) : (
+                                <div className="p-4 bg-amber-500/10 border border-amber-500/30 rounded-2xl text-slate-200 text-xs space-y-2.5">
+                                    <div className="flex items-center gap-2 text-amber-400 font-extrabold text-sm">
+                                        <i className="fa-solid fa-gear text-base flex-shrink-0"></i>
+                                        <span>{authError.title}</span>
+                                    </div>
+                                    <p className="text-slate-300 font-medium leading-relaxed">{authError.message}</p>
+                                    {authError.steps && (
+                                        <div className="p-2.5 bg-slate-950/60 rounded-xl border border-slate-700/60 space-y-1 text-slate-300 font-mono text-[11px]">
+                                            {authError.steps.map((st, i) => (
+                                                <div key={i} className="flex items-start gap-1.5">
+                                                    <span>{st}</span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                    {authError.link && (
+                                        <a 
+                                            href={authError.link} 
+                                            target="_blank" 
+                                            rel="noreferrer"
+                                            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold rounded-lg transition-colors text-xs shadow-md"
+                                        >
+                                            <span>{authError.linkText || 'Open Link ↗'}</span>
+                                        </a>
+                                    )}
+                                </div>
+                            )
+                        )}
+
+                        {/* REALTIME GOOGLE SIGN IN BUTTON */}
+                        <div>
+                            <button 
+                                type="button" 
+                                onClick={handleFirebaseGoogleSignIn}
+                                disabled={isLoading}
+                                className="w-full flex items-center justify-center gap-3 py-3.5 px-4 bg-white hover:bg-slate-100 text-gray-800 font-bold text-sm rounded-xl shadow-lg border border-gray-200 transition-all btn-hover"
+                            >
+                                <GoogleIcon />
+                                <span>Continue with Google</span>
+                            </button>
+                        </div>
+
+                        <div className="relative">
+                            <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-slate-700"></div></div>
+                            <div className="relative flex justify-center text-xs uppercase tracking-wider"><span className="px-3 bg-slate-900 text-slate-400 font-bold">OR FIREBASE AUTH</span></div>
+                        </div>
+
+                        <form className="space-y-4" onSubmit={handleSubmit}>
+                            {!isLogin && (
+                                <div>
+                                    <label className="block text-sm font-bold text-slate-300 mb-1">Authorized Name</label>
+                                    <input name="name" type="text" required={!isLogin} className="appearance-none block w-full px-4 py-3 bg-slate-800/50 border border-slate-600 placeholder-slate-500 text-white rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent sm:text-sm transition-all" placeholder="Enter your name" />
+                                </div>
+                            )}
+                            <div>
+                                <label className="block text-sm font-bold text-slate-300 mb-1">Clearance ID / Email</label>
+                                <input name="email" type="text" required className="appearance-none block w-full px-4 py-3 bg-slate-800/50 border border-slate-600 placeholder-slate-500 text-white rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent sm:text-sm transition-all" placeholder="name@domain.com" />
+                            </div>
+                            <div className="relative">
+                                <label className="block text-sm font-bold text-slate-300 mb-1">Access Password</label>
+                                <div className="relative">
+                                    <input name="password" type={showPassword ? "text" : "password"} required className="appearance-none block w-full px-4 py-3 bg-slate-800/50 border border-slate-600 placeholder-slate-500 text-white rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent sm:text-sm pr-10 transition-all" placeholder="••••••••" />
+                                    <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-400 hover:text-white focus:outline-none transition-colors"><i className={`fa-regular ${showPassword ? 'fa-eye-slash' : 'fa-eye'}`}></i></button>
+                                </div>
+                            </div>
+                            <button type="submit" disabled={isLoading} className="w-full flex justify-center py-3.5 px-4 border border-transparent text-sm font-bold rounded-xl text-white bg-sky-600 hover:bg-sky-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 focus:ring-sky-500 shadow-[0_0_20px_rgba(56,189,248,0.3)] btn-hover transition-all uppercase tracking-wider">
+                                {isLoading ? <i className="fa-solid fa-spinner fa-spin"></i> : (isLogin ? 'Unlock Vault' : 'Register Identity')}
+                            </button>
+                        </form>
+                        
+                        <div className="text-center text-sm text-slate-400">
+                            {isLogin ? "No clearance? " : "Clearance acquired? "}
+                            <button onClick={() => { setIsLogin(!isLogin); setAuthError(''); }} className="font-bold text-sky-400 hover:text-sky-300 focus:outline-none hover:underline transition-all">{isLogin ? "Register Protocol" : "Authenticate"}</button>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const Dashboard = ({ user, onLogout, onSwitchUser }) => {
+            const [documents, setDocuments] = useState(initialMockDocs);
+            const [appSectors, setAppSectors] = useState(defaultSectors);
+            const [isLoaded, setIsLoaded] = useState(false);
+            const [isSyncing, setIsSyncing] = useState(false);
+
+            const [showNewSectorModal, setShowNewSectorModal] = useState(false);
+            const [newSectorName, setNewSectorName] = useState('');
+
+            const [currentView, setCurrentView] = useState('dashboard');
+            const [activeSector, setActiveSector] = useState('All'); 
+            const [history, setHistory] = useState([]);
+            const [showAccountMenu, setShowAccountMenu] = useState(false);
+            const [searchQuery, setSearchQuery] = useState('');
+            
+            const [showUploadMenu, setShowUploadMenu] = useState(false);
+            const [showCamera, setShowCamera] = useState(false);
+            
+            const [pendingFiles, setPendingFiles] = useState([]);
+            const [showCategoryModal, setShowCategoryModal] = useState(false);
+            
+            const [animatingIds, setAnimatingIds] = useState({ delete: [], restore: [] });
+            
+            const [renamingDocId, setRenamingDocId] = useState(null);
+            const [newDocName, setNewDocName] = useState('');
+
+            const [viewingDoc, setViewingDoc] = useState(null);
+
+            const fileInputRef = useRef(null);
+            const videoRef = useRef(null);
+            const canvasRef = useRef(null);
+            const streamRef = useRef(null);
+
+            // Load Persistent Vault Data from Firebase Firestore / IndexedDB
+            useEffect(() => {
+                const loadData = async () => {
+                    if (!user || !user.id) return;
+                    setIsSyncing(true);
+                    const savedData = await loadUserDataFromDB(user.id);
+                    if (savedData) {
+                        if (savedData.documents && Array.isArray(savedData.documents)) {
+                            setDocuments(savedData.documents);
+                        }
+                        if (savedData.sectors && Array.isArray(savedData.sectors)) {
+                            setAppSectors(savedData.sectors);
+                        }
+                    } else {
+                        await saveUserDataToDB(user.id, {
+                            documents: initialMockDocs,
+                            sectors: defaultSectors
+                        });
+                    }
+                    setIsLoaded(true);
+                    setIsSyncing(false);
+                };
+                loadData();
+            }, [user]);
+
+            // Save to Firebase Firestore & IndexedDB whenever documents or sectors change
+            useEffect(() => {
+                if (isLoaded && user && user.id) {
+                    setIsSyncing(true);
+                    saveUserDataToDB(user.id, {
+                        documents,
+                        sectors: appSectors
+                    }).then(() => {
+                        setTimeout(() => setIsSyncing(false), 300);
+                    });
+                }
+            }, [documents, appSectors, isLoaded, user]);
+
+            const navigateTo = (view, sector = 'All') => {
+                if (currentView === view && activeSector === sector) return;
+                setHistory(prev => [...prev, { view: currentView, sector: activeSector }]);
+                setCurrentView(view);
+                setActiveSector(sector);
+            };
+
+            const goBack = () => {
+                if (history.length > 0) {
+                    const prev = history[history.length - 1];
+                    setHistory(history.slice(0, -1));
+                    setCurrentView(prev.view);
+                    setActiveSector(prev.sector);
+                }
+            };
+
+            const handleCreateSector = (e) => {
+                e.preventDefault();
+                if(newSectorName.trim() === '') return;
+                
+                const colorCombos = [
+                    { color: 'text-orange-500', bg: 'bg-orange-100' },
+                    { color: 'text-pink-500', bg: 'bg-pink-100' },
+                    { color: 'text-cyan-500', bg: 'bg-cyan-100' },
+                    { color: 'text-fuchsia-500', bg: 'bg-fuchsia-100' },
+                    { color: 'text-lime-500', bg: 'bg-lime-100' }
+                ];
+                const combo = colorCombos[appSectors.length % colorCombos.length];
+                
+                const newSector = { name: newSectorName, icon: 'fa-folder-closed', color: combo.color, bg: combo.bg, isCustom: true };
+                setAppSectors([...appSectors, newSector]);
+                setShowNewSectorModal(false);
+                setNewSectorName('');
+            };
+
+            const deleteSector = (e, sectorName) => {
+                e.stopPropagation();
+                if(window.confirm(`SECURITY ALERT: Are you sure you want to delete the "${sectorName}" sector? All associated files will be permanently purged.`)) {
+                    setAppSectors(prev => prev.filter(s => s.name !== sectorName));
+                    setDocuments(prev => prev.filter(d => d.category !== sectorName));
+                    if (activeSector === sectorName) {
+                        setActiveSector('All');
+                        if (currentView === 'my-documents') setCurrentView('dashboard');
+                    }
+                }
+            };
+
+            const startRename = (e, docId, currentName) => { e.stopPropagation(); setRenamingDocId(docId); setNewDocName(currentName); };
+            const saveRename = (e, docId) => {
+                e.stopPropagation();
+                if(newDocName.trim() === '') { setRenamingDocId(null); return; }
+                let finalName = newDocName;
+                setDocuments(docs => docs.map(d => d.id === docId ? { ...d, name: finalName } : d));
+                setRenamingDocId(null);
+            };
+            const cancelRename = (e) => { e.stopPropagation(); setRenamingDocId(null); };
+
+            const triggerFileSelect = () => { setShowUploadMenu(false); fileInputRef.current.click(); };
+
+            const startCamera = async () => {
+                setShowUploadMenu(false); setShowCamera(true);
+                try {
+                    const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                    if (videoRef.current) { videoRef.current.srcObject = stream; }
+                    streamRef.current = stream;
+                } catch (err) {
+                    alert("Camera blocked by security protocol. Please grant permissions.");
+                    setShowCamera(false);
+                }
+            };
+
+            const stopCamera = () => { if (streamRef.current) { streamRef.current.getTracks().forEach(track => track.stop()); } setShowCamera(false); };
+
+            const capturePhoto = () => {
+                if (videoRef.current && canvasRef.current) {
+                    const context = canvasRef.current.getContext('2d');
+                    canvasRef.current.width = videoRef.current.videoWidth;
+                    canvasRef.current.height = videoRef.current.videoHeight;
+                    context.drawImage(videoRef.current, 0, 0, canvasRef.current.width, canvasRef.current.height);
+                    
+                    const dataUrl = canvasRef.current.toDataURL('image/png');
+                    stopCamera();
+                    
+                    setPendingFiles([{ name: `SECURE_SCAN_${Date.now()}.png`, size: '1.2 MB', isMock: false, fileUrl: dataUrl, fileType: 'image/png' }]);
+                    setShowCategoryModal(true);
+                }
+            };
+
+            const handleFileChange = (e) => {
+                const files = Array.from(e.target.files);
+                if (files.length > 0) {
+                    const fileReadPromises = files.map(file => {
+                        return new Promise((resolve) => {
+                            const reader = new FileReader();
+                            reader.onload = (event) => {
+                                resolve({
+                                    name: file.name,
+                                    size: (file.size / (1024 * 1024)).toFixed(2) + ' MB',
+                                    isMock: false,
+                                    fileUrl: event.target.result,
+                                    fileType: file.type
+                                });
+                            };
+                            reader.readAsDataURL(file);
+                        });
+                    });
+
+                    Promise.all(fileReadPromises).then(newFiles => {
+                        setPendingFiles(newFiles);
+                        setShowCategoryModal(true);
+                    });
+                }
+                e.target.value = '';
+            };
+
+            const saveFilesToSector = (sectorName) => {
+                const newDocs = pendingFiles.map((file, index) => ({
+                    id: Date.now() + index,
+                    name: file.name,
+                    category: sectorName,
+                    date: new Date().toISOString().split('T')[0],
+                    size: file.size,
+                    isFavorite: false,
+                    isDeleted: false,
+                    isMock: file.isMock,
+                    fileUrl: file.fileUrl,
+                    fileType: file.fileType
+                }));
+                setDocuments([...newDocs, ...documents]);
+                setPendingFiles([]);
+                setShowCategoryModal(false);
+                navigateTo('my-documents', sectorName);
+            };
+
+            const toggleFavorite = (e, docId) => { e.stopPropagation(); setDocuments(docs => docs.map(doc => doc.id === docId ? { ...doc, isFavorite: !doc.isFavorite } : doc)); };
+            const moveToTrash = (e, docId) => {
+                e.stopPropagation(); setAnimatingIds(prev => ({ ...prev, delete: [...prev.delete, docId] }));
+                setTimeout(() => { setDocuments(docs => docs.map(doc => doc.id === docId ? { ...doc, isDeleted: true, isFavorite: false } : doc)); setAnimatingIds(prev => ({ ...prev, delete: prev.delete.filter(id => id !== docId) })); }, 400);
+            };
+            const restoreFromTrash = (e, docId) => {
+                e.stopPropagation(); setAnimatingIds(prev => ({ ...prev, restore: [...prev.restore, docId] }));
+                setTimeout(() => { setDocuments(docs => docs.map(doc => doc.id === docId ? { ...doc, isDeleted: false } : doc)); setAnimatingIds(prev => ({ ...prev, restore: prev.restore.filter(id => id !== docId) })); }, 400);
+            };
+            const permanentlyDelete = (e, docId) => {
+                e.stopPropagation(); 
+                setAnimatingIds(prev => ({ ...prev, delete: [...prev.delete, docId] }));
+                deleteDocumentFromFirestore(user?.id, docId);
+                setTimeout(() => { 
+                    setDocuments(docs => docs.filter(doc => doc.id !== docId)); 
+                    setAnimatingIds(prev => ({ ...prev, delete: prev.delete.filter(id => id !== docId) })); 
+                }, 400);
+            };
+            const emptyTrash = () => {
+                const trashIds = trashDocuments.map(d => d.id); 
+                setAnimatingIds(prev => ({ ...prev, delete: [...prev.delete, ...trashIds] }));
+                trashIds.forEach(id => deleteDocumentFromFirestore(user?.id, id));
+                setTimeout(() => { 
+                    setDocuments(docs => docs.filter(doc => !doc.isDeleted)); 
+                    setAnimatingIds(prev => ({ ...prev, delete: [] })); 
+                }, 400);
+            };
+
+            const activeDocuments = documents.filter(d => !d.isDeleted);
+            const trashDocuments = documents.filter(d => d.isDeleted);
+            const getDocCount = (sectorName) => activeDocuments.filter(d => d.category === sectorName).length;
+            const displayedSectors = activeSector === 'All' ? appSectors : appSectors.filter(s => s.name === activeSector);
+            const favoriteDocs = activeDocuments.filter(doc => doc.isFavorite);
+            const totalDocuments = activeDocuments.length;
+            const totalFavorites = favoriteDocs.length;
+            const totalTrash = trashDocuments.length;
+
+            return (
+                <div className="flex h-screen bg-dashboard relative">
+                    
+                    {/* DOCUMENT VIEWER MODAL */}
+                    {viewingDoc && (
+                        <div className="fixed inset-0 z-[120] flex items-center justify-center modal-bg opacity-0 p-4 md:p-10" style={{ animation: 'fadeIn 0.2s ease-out forwards' }}>
+                            <div className="bg-slate-900 rounded-3xl shadow-[0_0_80px_rgba(0,0,0,0.8)] w-full max-w-5xl h-full max-h-[90vh] flex flex-col overflow-hidden border border-slate-700 opacity-0 relative" style={{ animation: 'fadeInUp 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards' }}>
+                                <div className="flex justify-between items-center p-4 md:p-6 border-b border-slate-800 bg-slate-900/80 backdrop-blur z-10">
+                                    <div className="flex items-center">
+                                        <div className={`w-12 h-12 flex-shrink-0 rounded-xl flex items-center justify-center mr-4 shadow-sm ${viewingDoc.name.includes('.pdf') ? 'bg-red-500/10 text-red-400 border border-red-500/20' : 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'}`}>
+                                            <i className={`fa-solid fa-file${viewingDoc.name.includes('.pdf') ? '-pdf' : '-image'} text-2xl`}></i>
+                                        </div>
+                                        <div>
+                                            <h3 className="text-xl font-extrabold text-white truncate max-w-[200px] md:max-w-md" title={viewingDoc.name}>{viewingDoc.name}</h3>
+                                            <div className="text-sm font-bold text-slate-400 mt-0.5 uppercase tracking-wider">{viewingDoc.category} &bull; {viewingDoc.size}</div>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        {viewingDoc.fileUrl && !viewingDoc.isMock && (
+                                            <a href={viewingDoc.fileUrl} download={viewingDoc.name} className="bg-slate-800 hover:bg-slate-700 text-sky-400 px-4 py-2 rounded-xl font-bold transition-colors text-sm flex items-center border border-slate-700">
+                                                <i className="fa-solid fa-download mr-2"></i> <span className="hidden sm:inline">Download</span>
+                                            </a>
+                                        )}
+                                        <button onClick={() => setViewingDoc(null)} className="text-slate-400 hover:text-red-400 hover:bg-slate-800 w-10 h-10 rounded-xl flex items-center justify-center transition-colors border border-transparent hover:border-slate-700"><i className="fa-solid fa-xmark text-xl"></i></button>
+                                    </div>
+                                </div>
+                                
+                                <div className="flex-1 bg-slate-950 relative overflow-hidden flex items-center justify-center p-4 md:p-8">
+                                    {viewingDoc.isMock ? (
+                                        <div className="text-center p-8 max-w-md opacity-0" style={{ animation: 'fadeInUp 0.4s ease-out 0.1s forwards' }}>
+                                            <div className="w-24 h-24 bg-slate-900 rounded-full flex items-center justify-center mx-auto mb-6 border border-slate-800 shadow-[0_0_30px_rgba(0,0,0,0.5)]">
+                                                <i className="fa-solid fa-lock text-4xl text-slate-600"></i>
+                                            </div>
+                                            <h4 className="text-xl font-extrabold text-white mb-2">Legacy Encrypted File</h4>
+                                            <p className="text-slate-400 text-sm leading-relaxed">This is a mock placeholder document. The preview engine cannot decrypt it locally. Upload a real file to store and view permanently.</p>
+                                        </div>
+                                    ) : (viewingDoc.fileType && viewingDoc.fileType.startsWith('image/')) || (viewingDoc.fileUrl && viewingDoc.fileUrl.startsWith('data:image')) ? (
+                                        <img src={viewingDoc.fileUrl} alt={viewingDoc.name} className="max-w-full max-h-full object-contain rounded-lg shadow-2xl opacity-0" style={{ animation: 'fadeIn 0.3s ease-out forwards' }} />
+                                    ) : (viewingDoc.fileType === 'application/pdf') || (viewingDoc.fileUrl && viewingDoc.fileUrl.startsWith('data:application/pdf')) ? (
+                                        <iframe src={viewingDoc.fileUrl} title={viewingDoc.name} className="w-full h-full rounded-lg bg-white border-0 opacity-0" style={{ animation: 'fadeIn 0.3s ease-out forwards' }}></iframe>
+                                    ) : (
+                                        <div className="text-center p-8 max-w-md opacity-0" style={{ animation: 'fadeInUp 0.4s ease-out 0.1s forwards' }}>
+                                            <div className="w-24 h-24 bg-slate-900 rounded-full flex items-center justify-center mx-auto mb-6 border border-slate-800 shadow-[0_0_30px_rgba(0,0,0,0.5)]">
+                                                <i className="fa-solid fa-file-circle-xmark text-4xl text-slate-600"></i>
+                                            </div>
+                                            <h4 className="text-xl font-extrabold text-white mb-2">Permanent Cloud Storage</h4>
+                                            <p className="text-slate-400 text-sm leading-relaxed">File safely stored on Firebase. Click the download button above to extract to your local environment.</p>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* SIDEBAR */}
+                    <aside className="w-64 bg-slate-900/95 backdrop-blur-2xl border-r border-slate-700/50 shadow-[4px_0_24px_rgba(0,0,0,0.5)] flex flex-col sidebar hidden md:flex opacity-0 z-20" style={{ animation: 'slideInLeft 0.6s cubic-bezier(0.4, 0, 0.2, 1) 0.1s forwards' }}>
+                        <div className="p-6 border-b border-slate-800 flex items-center group cursor-pointer" onClick={() => navigateTo('dashboard')}>
+                            <div className="relative w-12 h-12 bg-sky-500/10 border border-sky-500/30 rounded-xl flex items-center justify-center mr-3 shadow-[0_0_10px_rgba(56,189,248,0.2)] overflow-hidden">
+                                <i className="fa-solid fa-vault text-2xl text-sky-900 absolute opacity-50 group-hover:opacity-30 transition-opacity"></i>
+                                <i className="fa-solid fa-circle-notch text-3xl text-sky-500/40 absolute" style={{ animation: 'spin-dial 4s cubic-bezier(0.68, -0.55, 0.265, 1.55) infinite' }}></i>
+                                <i className="fa-solid fa-lock text-sm text-sky-200 absolute z-10 group-hover:text-white transition-colors" style={{ animation: 'lock-pulse 2s infinite' }}></i>
+                            </div>
+                            <div>
+                                <h1 className="text-2xl font-extrabold text-white tracking-tight leading-none">SecureVault</h1>
+                                <span className="text-[10px] font-bold text-emerald-400 flex items-center gap-1 mt-1">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span> Firebase Active
+                                </span>
+                            </div>
+                        </div>
+                        <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
+                            <a href="#" onClick={() => navigateTo('dashboard')} className={`flex items-center justify-between p-3 rounded-xl font-medium transition-all duration-200 ${currentView === 'dashboard' ? 'text-sky-400 bg-sky-500/10 border border-sky-500/20 shadow-sm' : 'text-slate-400 hover:text-white hover:bg-slate-800 hover:pl-4'}`}>
+                                <span><i className="fa-solid fa-border-all w-6"></i> Dashboard</span>
+                            </a>
+                            <a href="#" onClick={() => navigateTo('my-documents', 'All')} className={`flex items-center justify-between p-3 rounded-xl font-medium transition-all duration-200 ${currentView === 'my-documents' ? 'text-sky-400 bg-sky-500/10 border border-sky-500/20 shadow-sm' : 'text-slate-400 hover:text-white hover:bg-slate-800 hover:pl-4'}`}>
+                                <span><i className="fa-regular fa-folder w-6"></i> Vault Archives</span>
+                                <span className={`text-xs px-2 py-1 rounded-full font-bold ${currentView === 'my-documents' ? 'bg-sky-500/20 text-sky-400 border border-sky-500/30' : 'bg-slate-800 text-slate-500'}`}>{totalDocuments}</span>
+                            </a>
+                            <a href="#" onClick={() => navigateTo('favorites')} className={`flex items-center justify-between p-3 rounded-xl font-medium transition-all duration-200 ${currentView === 'favorites' ? 'text-yellow-400 bg-yellow-500/10 border border-yellow-500/20 shadow-sm' : 'text-slate-400 hover:text-white hover:bg-slate-800 hover:pl-4'}`}>
+                                <span><i className="fa-regular fa-star w-6"></i> Starred Data</span>
+                                {totalFavorites > 0 && <span className={`text-xs px-2 py-1 rounded-full font-bold ${currentView === 'favorites' ? 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30' : 'bg-slate-800 text-slate-500'}`}>{totalFavorites}</span>}
+                            </a>
+                            <hr className="my-4 border-slate-800" />
+                            <a href="#" onClick={() => navigateTo('trash')} className={`flex items-center justify-between p-3 rounded-xl font-medium transition-all duration-200 ${currentView === 'trash' ? 'text-red-400 bg-red-500/10 border border-red-500/20 shadow-sm' : 'text-slate-400 hover:text-white hover:bg-slate-800 hover:pl-4'}`}>
+                                <span><i className="fa-solid fa-trash-can w-6"></i> Recycle Bin</span>
+                                {totalTrash > 0 && <span className={`text-xs px-2 py-1 rounded-full font-bold ${currentView === 'trash' ? 'bg-red-500/20 text-red-400 border border-red-500/30' : 'bg-slate-800 text-slate-500'}`}>{totalTrash}</span>}
+                            </a>
+                        </nav>
+                        
+                        <div className="p-4 border-t border-slate-800 bg-slate-900/50 relative">
+                            {showAccountMenu && (
+                                <div className="absolute bottom-full mb-2 left-4 right-4 bg-slate-800/95 backdrop-blur-xl border border-slate-700 rounded-xl shadow-[0_0_30px_rgba(0,0,0,0.8)] overflow-hidden z-50 opacity-0" style={{ animation: 'fadeInUp 0.2s cubic-bezier(0.4, 0, 0.2, 1) forwards' }}>
+                                    <div className="p-3 bg-slate-900/80 border-b border-slate-700 text-xs font-bold text-slate-400 uppercase tracking-wider flex justify-between items-center">
+                                        <span>Active Identity</span>
+                                        <button onClick={() => setShowAccountMenu(false)} className="text-slate-500 hover:text-white transition-colors"><i className="fa-solid fa-xmark"></i></button>
+                                    </div>
+                                    <div className="p-3 bg-slate-900/50 flex items-center">
+                                        {user.avatar ? (
+                                            <img src={user.avatar} alt="Avatar" className="w-8 h-8 rounded-full mr-3 object-cover border border-sky-400/50" />
+                                        ) : (
+                                            <div className="h-8 w-8 rounded-full bg-sky-600 text-white flex items-center justify-center font-bold text-sm mr-3 shadow-[0_0_10px_rgba(56,189,248,0.4)]">{user.name.charAt(0).toUpperCase()}</div>
+                                        )}
+                                        <div className="flex-1 min-w-0">
+                                            <p className="text-sm font-bold text-white truncate flex items-center gap-1.5">
+                                                {user.name} {user.isGoogle && <GoogleIcon />}
+                                            </p>
+                                            <p className="text-xs text-slate-400 truncate">{user.id}</p>
+                                        </div>
+                                    </div>
+                                    <button onClick={() => { setShowAccountMenu(false); onLogout(); }} className="w-full text-left p-3 hover:bg-slate-700 flex items-center transition-colors border-t border-slate-700 text-slate-300">
+                                        <i className="fa-solid fa-user-plus text-slate-500 mr-3 w-8 text-center"></i>
+                                        <span className="text-sm font-bold">Switch Account...</span>
+                                    </button>
+                                </div>
+                            )}
+
+                            <div 
+                                className="flex items-center mb-3 p-2 rounded-xl cursor-pointer bg-slate-800/50 border border-slate-700 hover:border-sky-500/50 hover:bg-slate-800 hover:-translate-y-0.5 transition-all duration-200"
+                                onClick={() => setShowAccountMenu(!showAccountMenu)}
+                                title="Manage Clearance"
+                            >
+                                {user.avatar ? (
+                                    <div className="relative mr-3">
+                                        <img src={user.avatar} alt="Avatar" className="w-10 h-10 rounded-full object-cover border-2 border-sky-400/80 shadow-md" />
+                                        <div className="absolute -bottom-1 -right-1 bg-white p-0.5 rounded-full shadow"><GoogleIcon /></div>
+                                    </div>
+                                ) : (
+                                    <div className="h-10 w-10 rounded-full bg-sky-600 text-white flex items-center justify-center font-bold text-lg mr-3 shadow-[0_0_10px_rgba(56,189,248,0.4)] border-2 border-slate-800">
+                                        {user.name.charAt(0).toUpperCase()}
+                                    </div>
+                                )}
+                                <div className="overflow-hidden flex-1">
+                                    <p className="text-sm font-bold text-white truncate flex items-center gap-1">
+                                        {user.name}
+                                    </p>
+                                    <p className="text-xs text-sky-400 truncate font-mono">
+                                        {isSyncing ? 'SYNCING CLOUD...' : (user.isGoogle ? 'FIREBASE GOOGLE' : 'FIREBASE AUTH')}
+                                    </p>
+                                </div>
+                                <i className={`fa-solid fa-chevron-${showAccountMenu ? 'down' : 'up'} text-slate-400 text-xs ml-1 transition-transform`}></i>
+                            </div>
+                            
+                            <button 
+                                onClick={onLogout}
+                                className="w-full flex justify-center items-center p-2.5 bg-slate-800/50 border border-slate-700 text-red-400 hover:bg-red-500/10 hover:text-red-300 hover:border-red-500/30 rounded-xl transition-all duration-200 text-sm font-bold"
+                            >
+                                <i className="fa-solid fa-right-from-bracket mr-2"></i> Logout
+                            </button>
+                        </div>
+                    </aside>
+
+                    <main className="flex-1 p-4 md:p-8 overflow-y-auto relative scroll-smooth opacity-0 z-10" style={{ animation: 'fadeInUp 0.7s cubic-bezier(0.4, 0, 0.2, 1) 0.3s forwards' }}>
+                        
+                        {/* Header Area */}
+                        <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center mb-10 gap-6">
+                            <div className="flex items-center gap-4 flex-shrink-0">
+                                {history.length > 0 && (
+                                    <button onClick={goBack} className="w-12 h-12 flex items-center justify-center rounded-full bg-slate-800/80 backdrop-blur border border-slate-700 text-slate-300 hover:bg-slate-700 hover:text-white btn-hover shadow-lg transition-all" title="Go Back">
+                                        <i className="fa-solid fa-arrow-left text-lg"></i>
+                                    </button>
+                                )}
+                                <div>
+                                    <h2 className="text-3xl font-extrabold text-white tracking-tight flex items-center gap-3">
+                                        {currentView === 'dashboard' && (
+                                            <>
+                                                <span>Welcome back, {user.name}</span>
+                                                {user.isGoogle && <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/30 text-blue-400 text-xs font-semibold"><GoogleIcon /> Google Verified</span>}
+                                            </>
+                                        )}
+                                        {currentView === 'favorites' && 'Starred Data'}
+                                        {currentView === 'trash' && 'Recycle Bin'}
+                                        {currentView === 'my-documents' && (
+                                            <>
+                                                {activeSector !== 'All' && <span onClick={() => navigateTo('my-documents', 'All')} className="cursor-pointer text-slate-400 hover:text-sky-400 transition-colors">Vault Archives</span>}
+                                                {activeSector !== 'All' && <i className="fa-solid fa-chevron-right text-base text-slate-600 mx-3"></i>}
+                                                {activeSector === 'All' ? 'Vault Archives' : `Sector: ${activeSector}`}
+                                            </>
+                                        )}
+                                    </h2>
+                                </div>
+                            </div>
+
+                            {/* GLOBAL SEARCH BAR */}
+                            <div className="relative flex-1 max-w-xl w-full xl:mx-8">
+                                <div className="relative group">
+                                    <i className="fa-solid fa-search absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-400 group-hover:text-sky-400 transition-colors z-10"></i>
+                                    <input 
+                                        type="text" 
+                                        placeholder="Scan database for records..."
+                                        value={searchQuery}
+                                        onChange={(e) => setSearchQuery(e.target.value)}
+                                        className="w-full pl-12 pr-10 py-3.5 bg-slate-800/80 backdrop-blur-md border border-slate-700 text-white placeholder-slate-500 rounded-2xl focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent shadow-lg transition-all text-sm font-bold"
+                                    />
+                                    {searchQuery && (
+                                        <button onClick={() => setSearchQuery('')} className="absolute right-4 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-white focus:outline-none bg-slate-700 hover:bg-slate-600 rounded-full w-6 h-6 flex items-center justify-center transition-colors z-10">
+                                            <i className="fa-solid fa-xmark text-xs"></i>
+                                        </button>
+                                    )}
+                                </div>
+                                
+                                {searchQuery && (
+                                    <div className="absolute top-full mt-3 left-0 right-0 bg-white border border-gray-200 rounded-2xl shadow-[0_30px_60px_-15px_rgba(0,0,0,0.5)] z-50 overflow-hidden opacity-0" style={{ animation: 'fadeInUp 0.2s cubic-bezier(0.4, 0, 0.2, 1) forwards' }}>
+                                        {activeDocuments.filter(d => d.name.toLowerCase().includes(searchQuery.toLowerCase())).length > 0 ? (
+                                            <ul className="max-h-80 overflow-y-auto p-2">
+                                                <div className="px-4 py-2 text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">Encrypted Matches</div>
+                                                {activeDocuments.filter(d => d.name.toLowerCase().includes(searchQuery.toLowerCase())).map(doc => {
+                                                    const sectorData = appSectors.find(s => s.name === doc.category) || appSectors[0];
+                                                    const regex = new RegExp(`(${searchQuery})`, 'gi');
+                                                    const parts = doc.name.split(regex);
+                                                    
+                                                    return (
+                                                        <li key={doc.id}>
+                                                            <button 
+                                                                onClick={() => { setViewingDoc(doc); setSearchQuery(''); }}
+                                                                className="w-full text-left p-3 rounded-xl hover:bg-slate-50 flex items-center transition-all duration-200 group"
+                                                            >
+                                                                <div className={`w-10 h-10 rounded-lg flex items-center justify-center mr-4 shadow-sm ${doc.name.includes('.pdf') ? 'bg-red-50 text-red-500' : 'bg-green-50 text-green-500'}`}>
+                                                                    <i className={`fa-solid fa-file${doc.name.includes('.pdf') ? '-pdf' : '-image'} text-xl group-hover:scale-110 transition-transform`}></i>
+                                                                </div>
+                                                                <div className="flex-1 min-w-0">
+                                                                    <div className="text-sm font-bold text-gray-900 truncate">
+                                                                        {parts.map((part, i) => 
+                                                                            part.toLowerCase() === searchQuery.toLowerCase() 
+                                                                                ? <span key={i} className="bg-sky-200 text-sky-900 rounded px-0.5">{part}</span>
+                                                                                : <span key={i}>{part}</span>
+                                                                        )}
+                                                                    </div>
+                                                                    <div className="text-xs font-bold text-gray-500 flex items-center mt-1">
+                                                                        <span className={`px-2 py-0.5 rounded-md ${sectorData.bg} ${sectorData.color} mr-2`}>
+                                                                            {doc.category}
+                                                                        </span> 
+                                                                        {doc.date} &bull; {doc.size}
+                                                                    </div>
+                                                                </div>
+                                                            </button>
+                                                        </li>
+                                                    );
+                                                })}
+                                            </ul>
+                                        ) : (
+                                            <div className="p-10 text-center text-gray-500">
+                                                <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                                                    <i className="fa-solid fa-radar text-2xl text-gray-400"></i>
+                                                </div>
+                                                <p className="text-base font-bold text-gray-800">No records found</p>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+                            
+                            <input type="file" ref={fileInputRef} onChange={handleFileChange} multiple accept=".pdf,.png,.jpg,.jpeg,.doc,.docx" />
+                            
+                            <div className="relative z-10 flex gap-4 flex-shrink-0">
+                                <button onClick={() => setShowUploadMenu(!showUploadMenu)} className="bg-sky-500 text-slate-900 px-6 py-3.5 rounded-2xl hover:bg-sky-400 shadow-[0_0_20px_rgba(56,189,248,0.4)] flex items-center btn-hover font-extrabold text-sm transition-all border border-sky-400/50">
+                                    <i className="fa-solid fa-arrow-up-from-bracket mr-2.5"></i> SECURE UPLOAD <i className="fa-solid fa-chevron-down ml-2 text-xs opacity-70"></i>
+                                </button>
+                                {showUploadMenu && (
+                                    <div className="absolute right-0 top-16 mt-2 w-56 bg-slate-800/95 backdrop-blur-xl rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] border border-slate-700 overflow-hidden opacity-0 p-2" style={{ animation: 'fadeInUp 0.2s cubic-bezier(0.4, 0, 0.2, 1) forwards' }}>
+                                        <button onClick={triggerFileSelect} className="w-full text-left px-4 py-3 rounded-xl hover:bg-slate-700 text-white font-bold flex items-center transition-colors mb-1"><i className="fa-solid fa-file-arrow-up mr-3 text-sky-400 bg-sky-500/10 p-2 rounded-lg"></i> Select Files</button>
+                                        <button onClick={startCamera} className="w-full text-left px-4 py-3 rounded-xl hover:bg-slate-700 text-white font-bold flex items-center transition-colors"><i className="fa-solid fa-camera mr-3 text-emerald-400 bg-emerald-500/10 p-2 rounded-lg"></i> Direct Scan</button>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Modals */}
+                        {showCategoryModal && (
+                            <div className="fixed inset-0 z-[100] flex items-center justify-center modal-bg opacity-0" style={{ animation: 'fadeIn 0.3s ease-out forwards' }}>
+                                <div className="bg-white rounded-3xl shadow-2xl p-8 w-full max-w-4xl mx-4 opacity-0 border border-gray-200" style={{ animation: 'fadeInUp 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards' }}>
+                                    <div className="flex justify-between items-center mb-6">
+                                        <h3 className="text-2xl font-extrabold text-gray-900">Select Encryption Sector</h3>
+                                        <button onClick={() => setShowCategoryModal(false)} className="text-gray-400 hover:text-red-500 hover:bg-red-50 w-8 h-8 rounded-full flex items-center justify-center transition-colors"><i className="fa-solid fa-xmark text-xl"></i></button>
+                                    </div>
+                                    <div className="mb-8 p-5 bg-gray-50 rounded-2xl border border-gray-200 shadow-inner">
+                                        <div className="text-sm font-bold text-gray-500 mb-3 uppercase tracking-wider">Pending Records ({pendingFiles.length})</div>
+                                        <div className="max-h-32 overflow-y-auto space-y-2">
+                                            {pendingFiles.map((file, idx) => 
+                                                <div key={idx} className="flex items-center text-sm font-bold text-gray-800 bg-white p-3 rounded-xl shadow-sm border border-gray-100">
+                                                    <i className="fa-solid fa-file-lines mr-3 text-blue-500 text-lg"></i> {file.name}
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                    <h4 className="font-extrabold text-gray-900 mb-4 text-lg">Available Sectors:</h4>
+                                    <div className="grid grid-cols-2 md:grid-cols-5 gap-4 max-h-64 overflow-y-auto p-1">
+                                        {appSectors.map((sector, idx) => (
+                                            <button key={idx} onClick={() => saveFilesToSector(sector.name)} className="relative bg-white p-6 rounded-2xl border-2 border-gray-100 hover:border-sky-500 hover:shadow-[0_8px_20px_rgba(56,189,248,0.15)] transition-all duration-300 flex flex-col items-center justify-center gap-3 group">
+                                                {sector.isCustom && <span className="absolute top-2 right-2 text-[10px] font-extrabold bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full z-10 shadow-sm border border-gray-200">CUSTOM</span>}
+                                                <div className={`w-14 h-14 rounded-2xl flex items-center justify-center shadow-sm ${sector.bg} ${sector.color} group-hover:scale-110 group-hover:-translate-y-1 transition-all duration-300`}><i className={`fa-solid ${sector.icon} text-2xl`}></i></div>
+                                                <span className="font-bold text-gray-800 group-hover:text-sky-600 transition-colors text-sm text-center line-clamp-2 w-full">{sector.name}</span>
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {showNewSectorModal && (
+                            <div className="fixed inset-0 z-[100] flex items-center justify-center modal-bg opacity-0" style={{ animation: 'fadeIn 0.2s ease-out forwards' }}>
+                                <div className="bg-white rounded-3xl shadow-2xl p-8 w-full max-w-md mx-4 opacity-0 border border-gray-200" style={{ animation: 'fadeInUp 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards' }}>
+                                    <div className="flex justify-between items-center mb-6">
+                                        <h3 className="text-2xl font-extrabold text-gray-900">Create Private Sector</h3>
+                                        <button onClick={() => setShowNewSectorModal(false)} className="text-gray-400 hover:text-red-500 hover:bg-red-50 w-8 h-8 rounded-full flex items-center justify-center transition-colors"><i className="fa-solid fa-xmark text-xl"></i></button>
+                                    </div>
+                                    <form onSubmit={handleCreateSector}>
+                                        <div className="mb-6">
+                                            <label className="block text-sm font-bold text-gray-700 mb-2">Sector Name</label>
+                                            <input 
+                                                type="text" 
+                                                value={newSectorName}
+                                                onChange={(e) => setNewSectorName(e.target.value)}
+                                                className="w-full px-4 py-3 bg-gray-50 border border-gray-300 text-gray-900 rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent font-bold"
+                                                placeholder="e.g. Secret Projects"
+                                                autoFocus
+                                            />
+                                        </div>
+                                        <button type="submit" disabled={!newSectorName.trim()} className="w-full bg-sky-600 text-white font-bold py-3.5 rounded-xl hover:bg-sky-500 disabled:opacity-50 transition-colors btn-hover shadow-lg">
+                                            Initialize Sector
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        )}
+
+                        {showCamera && (
+                            <div className="fixed inset-0 z-[100] flex items-center justify-center modal-bg opacity-0" style={{ animation: 'fadeIn 0.3s ease-out forwards' }}>
+                                <div className="bg-white rounded-3xl shadow-2xl p-8 w-full max-w-lg mx-4 opacity-0" style={{ animation: 'fadeInUp 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards' }}>
+                                    <div className="flex justify-between items-center mb-6">
+                                        <h3 className="text-2xl font-extrabold text-gray-900">Direct Scan</h3>
+                                        <button onClick={stopCamera} className="text-gray-400 hover:text-red-500 hover:bg-red-50 w-8 h-8 rounded-full flex items-center justify-center transition-colors"><i className="fa-solid fa-xmark text-xl"></i></button>
+                                    </div>
+                                    <div className="bg-black rounded-2xl overflow-hidden mb-6 relative aspect-video flex items-center justify-center shadow-inner border-4 border-gray-100"><video ref={videoRef} autoPlay playsInline className="w-full h-full object-cover"></video></div>
+                                    <canvas ref={canvasRef} className="hidden"></canvas>
+                                    <div className="flex justify-center"><button onClick={capturePhoto} className="bg-sky-600 text-white px-8 py-4 rounded-2xl hover:bg-sky-500 shadow-xl flex items-center font-bold text-lg btn-hover w-full justify-center"><i className="fa-solid fa-camera mr-3"></i> Capture Document</button></div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* White High-Contrast Content Cards */}
+                        {currentView === 'dashboard' && (
+                            <>
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+                                    <div className="bg-white p-8 rounded-3xl shadow-xl border border-gray-100 flex items-center justify-between card-animated">
+                                        <div><div className="text-gray-500 mb-2 font-bold uppercase tracking-widest text-xs">Total Records</div><div className="text-4xl font-extrabold text-gray-900">{totalDocuments}</div></div>
+                                        <div className="w-16 h-16 bg-blue-50 rounded-2xl flex items-center justify-center shadow-inner border border-blue-100"><i className="fa-solid fa-server text-blue-600 text-2xl"></i></div>
+                                    </div>
+                                    <div className="bg-white p-8 rounded-3xl shadow-xl border border-gray-100 flex items-center justify-between card-animated">
+                                        <div><div className="text-gray-500 mb-2 font-bold uppercase tracking-widest text-xs">Priority Data</div><div className="text-4xl font-extrabold text-gray-900">{totalFavorites}</div></div>
+                                        <div className="w-16 h-16 bg-yellow-50 rounded-2xl flex items-center justify-center shadow-inner border border-yellow-100"><i className="fa-solid fa-star text-yellow-500 text-2xl"></i></div>
+                                    </div>
+                                    <div className="bg-white p-8 rounded-3xl shadow-xl border border-gray-100 card-animated flex flex-col justify-center">
+                                        <div className="flex justify-between items-center mb-3"><div className="text-gray-500 font-bold uppercase tracking-widest text-xs">Vault Capacity</div><i className="fa-solid fa-database text-blue-400"></i></div>
+                                        <div className="flex items-end gap-2 mb-3"><div className="text-3xl font-extrabold text-gray-900">25.4</div><div className="text-sm font-bold text-gray-500 mb-1">MB / 1 GB</div></div>
+                                        <div className="w-full bg-gray-100 rounded-full h-2.5 overflow-hidden shadow-inner"><div className="bg-gradient-to-r from-sky-400 to-indigo-500 h-2.5 rounded-full" style={{width: '15%'}}></div></div>
+                                    </div>
+                                </div>
+
+                                <div className="mb-10">
+                                    <h3 className="text-xl font-extrabold text-white mb-6 tracking-wide">Encrypted Sectors</h3>
+                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-5">
+                                        {appSectors.map((sector, idx) => (
+                                            <div key={idx} className="bg-white p-6 rounded-3xl shadow-xl border border-gray-100 cursor-pointer card-animated group relative">
+                                                
+                                                {sector.isCustom && (
+                                                    <button 
+                                                        onClick={(e) => deleteSector(e, sector.name)}
+                                                        className="absolute top-4 right-4 w-8 h-8 rounded-full bg-red-50 text-red-500 hover:bg-red-500 hover:text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all shadow-sm z-10"
+                                                        title="Delete Sector"
+                                                    >
+                                                        <i className="fa-solid fa-trash text-sm"></i>
+                                                    </button>
+                                                )}
+
+                                                <div className="flex justify-between items-start mb-4" onClick={() => navigateTo('my-documents', sector.name)}>
+                                                    <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shadow-sm ${sector.bg} ${sector.color} group-hover:scale-110 transition-transform duration-300 border border-gray-100`}><i className={`fa-solid ${sector.icon} text-xl`}></i></div>
+                                                </div>
+                                                <div className="font-extrabold text-gray-900 group-hover:text-blue-600 transition-colors text-lg truncate" title={sector.name} onClick={() => navigateTo('my-documents', sector.name)}>{sector.name}</div>
+                                                <div className="text-sm font-bold text-gray-400 mt-1 uppercase tracking-wider" onClick={() => navigateTo('my-documents', sector.name)}>{getDocCount(sector.name)} FILES</div>
+                                            </div>
+                                        ))}
+                                        
+                                        <div onClick={() => setShowNewSectorModal(true)} className="bg-slate-800/30 border-2 border-dashed border-slate-600 p-6 rounded-3xl cursor-pointer hover:border-sky-400 hover:bg-slate-800 transition-all duration-300 group flex flex-col items-center justify-center text-center shadow-inner">
+                                            <div className="w-12 h-12 rounded-2xl flex items-center justify-center bg-slate-700 text-slate-400 group-hover:bg-sky-500/20 group-hover:text-sky-400 group-hover:scale-110 transition-transform duration-300 mb-4 shadow-sm">
+                                                <i className="fa-solid fa-plus text-xl"></i>
+                                            </div>
+                                            <div className="font-extrabold text-slate-400 group-hover:text-white text-lg">New Sector</div>
+                                            <div className="text-sm font-bold text-slate-500 mt-1 uppercase tracking-wider">PRIVATE</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div className="bg-white rounded-3xl shadow-xl border border-gray-100 overflow-hidden">
+                                    <div className="p-6 border-b border-gray-100 flex justify-between items-center">
+                                        <h3 className="text-xl font-extrabold text-gray-900">Recent Activity Logs</h3>
+                                        <button onClick={() => navigateTo('my-documents', 'All')} className="text-sky-600 text-sm font-bold hover:bg-sky-50 px-4 py-2 rounded-lg transition-colors">Access Database</button>
+                                    </div>
+                                    <div className="overflow-x-auto">
+                                        <table className="w-full text-left border-collapse">
+                                            <thead>
+                                                <tr className="bg-gray-50/50 text-gray-500 text-xs uppercase tracking-widest font-bold">
+                                                    <th className="p-5 w-14 text-center"></th>
+                                                    <th className="p-5">Filename</th><th className="p-5">Security Sector</th><th className="p-5">Timestamp</th><th className="p-5 text-right pr-8">Clearance</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {activeDocuments.slice(0, 5).map(doc => {
+                                                    const sectorData = appSectors.find(s => s.name === doc.category) || appSectors[0];
+                                                    const isDeleting = animatingIds.delete.includes(doc.id);
+                                                    return (
+                                                        <tr key={doc.id} className={`border-t border-gray-50 cursor-pointer table-row-animated ${isDeleting ? 'animate-delete' : ''}`} onClick={() => setViewingDoc(doc)}>
+                                                            <td className="p-5 text-center" onClick={e => e.stopPropagation()}><button onClick={(e) => toggleFavorite(e, doc.id)} className="text-gray-300 hover:text-yellow-400 focus:outline-none transition-colors"><i className={`fa-star text-xl ${doc.isFavorite ? 'fa-solid text-yellow-400' : 'fa-regular'}`}></i></button></td>
+                                                            <td className="p-5 pl-2 flex items-center w-1/2">
+                                                                <div className={`w-10 h-10 flex-shrink-0 rounded-xl flex items-center justify-center mr-4 shadow-sm ${doc.name.includes('.pdf') ? 'bg-red-50 text-red-500 border border-red-100' : 'bg-green-50 text-green-500 border border-green-100'}`}><i className={`fa-solid fa-file${doc.name.includes('.pdf') ? '-pdf' : '-image'} text-lg`}></i></div>
+                                                                
+                                                                {renamingDocId === doc.id ? (
+                                                                    <div className="flex items-center w-full relative" onClick={e => e.stopPropagation()}>
+                                                                        <input 
+                                                                            type="text" 
+                                                                            value={newDocName} 
+                                                                            onChange={(e) => setNewDocName(e.target.value)}
+                                                                            className="w-full px-3 py-1.5 border-2 border-blue-400 rounded-lg focus:outline-none text-sm font-bold text-gray-900 pr-16 bg-white shadow-sm"
+                                                                            autoFocus
+                                                                            onKeyDown={(e) => { if(e.key === 'Enter') saveRename(e, doc.id); if(e.key === 'Escape') cancelRename(e); }}
+                                                                        />
+                                                                        <div className="absolute right-1 flex gap-1">
+                                                                            <button onClick={(e) => saveRename(e, doc.id)} className="w-6 h-6 bg-blue-100 text-blue-600 rounded hover:bg-blue-200"><i className="fa-solid fa-check text-xs"></i></button>
+                                                                            <button onClick={cancelRename} className="w-6 h-6 bg-gray-100 text-gray-500 rounded hover:bg-gray-200"><i className="fa-solid fa-xmark text-xs"></i></button>
+                                                                        </div>
+                                                                    </div>
+                                                                ) : (
+                                                                    <span className="font-bold text-gray-900 truncate">{doc.name}</span>
+                                                                )}
+                                                            </td>
+                                                            <td className="p-5"><span className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center w-max ${sectorData.bg} ${sectorData.color} border border-gray-100`}><i className={`fa-solid ${sectorData.icon} mr-2`}></i>{doc.category}</span></td>
+                                                            <td className="p-5 text-gray-500 text-sm font-medium">{doc.date}</td>
+                                                            <td className="p-5 text-right pr-6 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
+                                                                <button onClick={(e) => startRename(e, doc.id, doc.name)} className="text-gray-400 hover:text-amber-500 hover:bg-amber-50 w-10 h-10 rounded-xl transition-all btn-action-hover mx-1" title="Rename"><i className="fa-solid fa-pen"></i></button>
+                                                                <button onClick={(e) => {e.stopPropagation(); setViewingDoc(doc);}} className="text-gray-400 hover:text-blue-600 hover:bg-blue-50 w-10 h-10 rounded-xl transition-all btn-action-hover mx-1" title="View"><i className="fa-regular fa-eye"></i></button>
+                                                                <button onClick={(e) => moveToTrash(e, doc.id)} className="text-gray-400 hover:text-red-600 hover:bg-red-50 w-10 h-10 rounded-xl transition-all btn-action-hover mx-1" title="Move to Recycle Bin"><i className="fa-solid fa-trash"></i></button>
+                                                            </td>
+                                                        </tr>
+                                                    );
+                                                })}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </>
+                        )}
+
+                        {currentView === 'my-documents' && (
+                            <div className="space-y-8 pb-10">
+                                {displayedSectors.map((sector, idx) => {
+                                    const sectorDocs = activeDocuments.filter(doc => doc.category === sector.name);
+                                    return (
+                                        <div key={idx} className="bg-white rounded-3xl shadow-xl border border-gray-100 overflow-hidden opacity-0" style={{ animation: `fadeInUp 0.5s cubic-bezier(0.4, 0, 0.2, 1) ${idx * 0.1}s forwards` }}>
+                                            <div className={`p-6 border-b border-gray-100 flex items-center justify-between bg-slate-50`}>
+                                                <div className="flex items-center">
+                                                    <div className={`w-12 h-12 rounded-2xl flex items-center justify-center mr-5 shadow-sm border border-gray-200 ${sector.bg} ${sector.color}`}><i className={`fa-solid ${sector.icon} text-xl`}></i></div>
+                                                    <div><h3 className="text-xl font-extrabold text-gray-900">{sector.name}</h3><p className="text-sm font-bold text-gray-400 uppercase tracking-widest mt-0.5">{sectorDocs.length} RECORDS</p></div>
+                                                </div>
+                                                {activeSector !== 'All' && <button onClick={() => navigateTo('my-documents', 'All')} className="text-sm text-sky-600 hover:bg-sky-50 px-4 py-2 rounded-lg font-bold transition-colors">Show All Sectors</button>}
+                                            </div>
+                                            {sectorDocs.length === 0 ? (
+                                                <div className="p-12 text-center text-gray-400"><i className="fa-solid fa-radar text-4xl mb-3 text-gray-300"></i><p className="font-bold text-sm">No records logged in {sector.name}</p></div>
+                                            ) : (
+                                                <div className="overflow-x-auto">
+                                                    <table className="w-full text-left border-collapse">
+                                                        <tbody>
+                                                            {sectorDocs.map(doc => {
+                                                                const isDeleting = animatingIds.delete.includes(doc.id);
+                                                                return (
+                                                                    <tr key={doc.id} className={`border-b border-gray-50 table-row-animated last:border-b-0 cursor-pointer ${isDeleting ? 'animate-delete' : ''}`} onClick={() => setViewingDoc(doc)}>
+                                                                        <td className="p-5 w-14 text-center" onClick={e => e.stopPropagation()}><button onClick={(e) => toggleFavorite(e, doc.id)} className="text-gray-300 hover:text-yellow-400 focus:outline-none transition-colors"><i className={`fa-star text-xl ${doc.isFavorite ? 'fa-solid text-yellow-400' : 'fa-regular'}`}></i></button></td>
+                                                                        <td className="p-5 pl-2 flex items-center w-1/2">
+                                                                            <div className={`w-10 h-10 flex-shrink-0 rounded-xl flex items-center justify-center mr-4 shadow-sm ${doc.name.includes('.pdf') ? 'bg-red-50 text-red-500 border border-red-100' : 'bg-green-50 text-green-500 border border-green-100'}`}><i className={`fa-solid fa-file${doc.name.includes('.pdf') ? '-pdf' : '-image'} text-lg`}></i></div>
+                                                                            
+                                                                            {renamingDocId === doc.id ? (
+                                                                                <div className="flex items-center w-full relative" onClick={e => e.stopPropagation()}>
+                                                                                    <input 
+                                                                                        type="text" 
+                                                                                        value={newDocName} 
+                                                                                        onChange={(e) => setNewDocName(e.target.value)}
+                                                                                        className="w-full px-3 py-1.5 border-2 border-blue-400 rounded-lg focus:outline-none text-sm font-bold text-gray-900 pr-16 bg-white shadow-sm"
+                                                                                        autoFocus
+                                                                                        onKeyDown={(e) => { if(e.key === 'Enter') saveRename(e, doc.id); if(e.key === 'Escape') cancelRename(e); }}
+                                                                                    />
+                                                                                    <div className="absolute right-1 flex gap-1">
+                                                                                        <button onClick={(e) => saveRename(e, doc.id)} className="w-6 h-6 bg-blue-100 text-blue-600 rounded hover:bg-blue-200"><i className="fa-solid fa-check text-xs"></i></button>
+                                                                                        <button onClick={cancelRename} className="w-6 h-6 bg-gray-100 text-gray-500 rounded hover:bg-gray-200"><i className="fa-solid fa-xmark text-xs"></i></button>
+                                                                                    </div>
+                                                                                </div>
+                                                                            ) : (
+                                                                                <span className="font-bold text-gray-900 truncate">{doc.name}</span>
+                                                                            )}
+
+                                                                        </td>
+                                                                        <td className="p-5 text-gray-500 text-sm font-medium">{doc.date}</td>
+                                                                        <td className="p-5 text-gray-500 text-sm font-bold bg-gray-50/50">{doc.size}</td>
+                                                                        <td className="p-5 text-right pr-6 whitespace-nowrap" onClick={e => e.stopPropagation()}>
+                                                                            <button onClick={(e) => startRename(e, doc.id, doc.name)} className="text-gray-400 hover:text-amber-500 hover:bg-amber-50 w-10 h-10 rounded-xl transition-all btn-action-hover mx-1" title="Rename"><i className="fa-solid fa-pen"></i></button>
+                                                                            {doc.fileUrl && !doc.isMock && <a href={doc.fileUrl} download={doc.name} className="text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 inline-flex items-center justify-center w-10 h-10 rounded-xl transition-all btn-action-hover mx-1" title="Download"><i className="fa-solid fa-download"></i></a>}
+                                                                            <button onClick={(e) => moveToTrash(e, doc.id)} className="text-gray-400 hover:text-red-600 hover:bg-red-50 w-10 h-10 rounded-xl transition-all btn-action-hover mx-1" title="Move to Recycle Bin"><i className="fa-solid fa-trash"></i></button>
+                                                                        </td>
+                                                                    </tr>
+                                                                )
+                                                            })}
+                                                        </tbody>
+                                                    </table>
+                                                </div>
+                                            )}
+                                        </div>
+                                    )
+                                })}
+                            </div>
+                        )}
+                        
+                        {currentView === 'favorites' && (
+                            <div className="bg-white rounded-3xl shadow-xl border border-gray-100 overflow-hidden">
+                                {favoriteDocs.length === 0 ? (
+                                    <div className="p-20 text-center text-gray-500"><i className="fa-regular fa-star text-6xl mb-5 text-gray-300"></i><p className="text-xl font-extrabold text-gray-800 mb-2">No Priority Data</p><p className="text-sm font-medium">Star a document to add it to your secure favorites.</p></div>
+                                ) : (
+                                    <div className="overflow-x-auto">
+                                        <table className="w-full text-left border-collapse">
+                                            <thead><tr className="bg-gray-50/50 text-gray-500 text-xs uppercase tracking-widest font-bold"><th className="p-5 w-14 text-center"><i className="fa-solid fa-star text-yellow-400"></i></th><th className="p-5">Name</th><th className="p-5">Sector</th><th className="p-5">Date</th><th className="p-5 text-right pr-8">Actions</th></tr></thead>
+                                            <tbody>
+                                                {favoriteDocs.map(doc => {
+                                                    const sectorData = appSectors.find(s => s.name === doc.category) || appSectors[0];
+                                                    const isDeleting = animatingIds.delete.includes(doc.id);
+                                                    return (
+                                                        <tr key={doc.id} className={`border-t border-gray-50 cursor-pointer table-row-animated ${isDeleting ? 'animate-delete' : ''}`} onClick={() => setViewingDoc(doc)}>
+                                                            <td className="p-5 text-center" onClick={e => e.stopPropagation()}><button onClick={(e) => toggleFavorite(e, doc.id)} className="text-gray-300 hover:text-yellow-400 focus:outline-none transition-colors"><i className={`fa-star text-xl ${doc.isFavorite ? 'fa-solid text-yellow-400' : 'fa-regular'}`}></i></button></td>
+                                                            <td className="p-5 pl-2 flex items-center w-1/2">
+                                                                <div className={`w-10 h-10 flex-shrink-0 rounded-xl flex items-center justify-center mr-4 shadow-sm ${doc.name.includes('.pdf') ? 'bg-red-50 text-red-500 border border-red-100' : 'bg-green-50 text-green-500 border border-green-100'}`}><i className={`fa-solid fa-file${doc.name.includes('.pdf') ? '-pdf' : '-image'} text-lg`}></i></div>
+                                                                
+                                                                {renamingDocId === doc.id ? (
+                                                                    <div className="flex items-center w-full relative" onClick={e => e.stopPropagation()}>
+                                                                        <input 
+                                                                            type="text" 
+                                                                            value={newDocName} 
+                                                                            onChange={(e) => setNewDocName(e.target.value)}
+                                                                            className="w-full px-3 py-1.5 border-2 border-blue-400 rounded-lg focus:outline-none text-sm font-bold text-gray-900 pr-16 bg-white shadow-sm"
+                                                                            autoFocus
+                                                                            onKeyDown={(e) => { if(e.key === 'Enter') saveRename(e, doc.id); if(e.key === 'Escape') cancelRename(e); }}
+                                                                        />
+                                                                        <div className="absolute right-1 flex gap-1">
+                                                                            <button onClick={(e) => saveRename(e, doc.id)} className="w-6 h-6 bg-blue-100 text-blue-600 rounded hover:bg-blue-200"><i className="fa-solid fa-check text-xs"></i></button>
+                                                                            <button onClick={cancelRename} className="w-6 h-6 bg-gray-100 text-gray-500 rounded hover:bg-gray-200"><i className="fa-solid fa-xmark text-xs"></i></button>
+                                                                        </div>
+                                                                    </div>
+                                                                ) : (
+                                                                    <span className="font-bold text-gray-900 truncate">{doc.name}</span>
+                                                                )}
+                                                            </td>
+                                                            <td className="p-5"><span className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center w-max ${sectorData.bg} ${sectorData.color}`}><i className={`fa-solid ${sectorData.icon} mr-2`}></i>{doc.category}</span></td>
+                                                            <td className="p-5 text-gray-500 text-sm font-medium">{doc.date}</td>
+                                                            <td className="p-5 text-right pr-6 whitespace-nowrap" onClick={e => e.stopPropagation()}>
+                                                                <button onClick={(e) => startRename(e, doc.id, doc.name)} className="text-gray-400 hover:text-amber-500 hover:bg-amber-50 w-10 h-10 rounded-xl transition-all btn-action-hover mx-1" title="Rename"><i className="fa-solid fa-pen"></i></button>
+                                                                <button onClick={(e) => {e.stopPropagation(); setViewingDoc(doc);}} className="text-gray-400 hover:text-blue-600 hover:bg-blue-50 w-10 h-10 rounded-xl transition-all btn-action-hover mx-1"><i className="fa-regular fa-eye"></i></button>
+                                                                <button onClick={(e) => moveToTrash(e, doc.id)} className="text-gray-400 hover:text-red-600 hover:bg-red-50 w-10 h-10 rounded-xl transition-all btn-action-hover mx-1" title="Move to Recycle Bin"><i className="fa-solid fa-trash"></i></button>
+                                                            </td>
+                                                        </tr>
+                                                    );
+                                                })}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        {currentView === 'trash' && (
+                            <div className="bg-white rounded-3xl shadow-xl border border-gray-100 overflow-hidden">
+                                <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
+                                    <div><h3 className="text-xl font-extrabold text-gray-900">Recycle Bin</h3><p className="text-sm font-medium text-gray-500 mt-1">Pending permanent wipe or restore.</p></div>
+                                    {trashDocuments.length > 0 && <button onClick={emptyTrash} className="bg-red-50 text-red-600 px-5 py-2.5 rounded-xl hover:bg-red-100 hover:text-red-700 font-bold transition-colors text-sm flex items-center shadow-sm"><i className="fa-solid fa-triangle-exclamation mr-2"></i> Purge All</button>}
+                                </div>
+                                {trashDocuments.length === 0 ? (
+                                    <div className="p-20 text-center text-gray-500"><i className="fa-solid fa-check-double text-6xl mb-5 text-green-400"></i><p className="text-xl font-extrabold text-gray-800 mb-2">Recycle Bin is Empty</p><p className="text-sm font-medium">No deleted documents to restore or purge.</p></div>
+                                ) : (
+                                    <div className="overflow-x-auto">
+                                        <table className="w-full text-left border-collapse">
+                                            <thead><tr className="bg-gray-50/50 text-gray-500 text-xs uppercase tracking-widest font-bold"><th className="p-5 pl-8">Name</th><th className="p-5">Sector</th><th className="p-5 text-right pr-8">Actions</th></tr></thead>
+                                            <tbody>
+                                                {trashDocuments.map(doc => {
+                                                    const sectorData = appSectors.find(s => s.name === doc.category) || appSectors[0];
+                                                    const isDeleting = animatingIds.delete.includes(doc.id);
+                                                    const isRestoring = animatingIds.restore.includes(doc.id);
+                                                    let animationClass = isDeleting ? 'animate-delete' : isRestoring ? 'animate-restore' : '';
+                                                    
+                                                    return (
+                                                        <tr key={doc.id} className={`border-t border-gray-100 hover:bg-red-50/20 transition-colors opacity-80 ${animationClass}`}>
+                                                            <td className="p-5 pl-8 flex items-center"><div className={`w-10 h-10 flex-shrink-0 rounded-xl flex items-center justify-center mr-4 bg-gray-100 text-gray-400`}><i className={`fa-solid fa-file${doc.name.includes('.pdf') ? '-pdf' : '-image'} text-lg`}></i></div><span className="font-bold text-gray-600 line-through truncate">{doc.name}</span></td>
+                                                            <td className="p-5"><span className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center w-max bg-gray-100 text-gray-500`}><i className={`fa-solid ${sectorData.icon} mr-2`}></i>{doc.category}</span></td>
+                                                            <td className="p-5 text-right pr-6 flex justify-end gap-2">
+                                                                <button onClick={(e) => restoreFromTrash(e, doc.id)} className="text-emerald-600 bg-emerald-50 px-4 py-2 rounded-xl hover:bg-emerald-100 font-bold transition-colors text-sm"><i className="fa-solid fa-rotate-left mr-2"></i> Restore</button>
+                                                                <button onClick={(e) => permanentlyDelete(e, doc.id)} className="text-red-600 bg-red-50 px-4 py-2 rounded-xl hover:bg-red-100 font-bold transition-colors text-sm"><i className="fa-solid fa-ban mr-2"></i> Purge</button>
+                                                            </td>
+                                                        </tr>
+                                                    );
+                                                })}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+                    </main>
+                </div>
+            );
+        };
+
+        const App = () => {
+            const [showSplash, setShowSplash] = useState(true);
+            const [isAuthenticated, setIsAuthenticated] = useState(false);
+            const [currentUser, setCurrentUser] = useState(null);
+
+            // Listen for Firebase Auth state changes
+            useEffect(() => {
+                if (fbAuth) {
+                    const unsubscribe = fbAuth.onAuthStateChanged((user) => {
+                        if (user) {
+                            setCurrentUser({
+                                id: user.uid,
+                                email: user.email,
+                                name: user.displayName || (user.email ? user.email.split('@')[0] : 'Agent'),
+                                avatar: user.photoURL,
+                                isGoogle: user.providerData && user.providerData.some(p => p.providerId === 'google.com')
+                            });
+                            setIsAuthenticated(true);
+                        } else {
+                            setCurrentUser(null);
+                            setIsAuthenticated(false);
+                        }
+                    });
+                    return () => unsubscribe();
+                }
+            }, []);
+
+            const handleLogout = async () => {
+                if (fbAuth) {
+                    try {
+                        await fbAuth.signOut();
+                    } catch (e) {
+                        console.warn("SignOut error:", e);
+                    }
+                }
+                setIsAuthenticated(false);
+                setCurrentUser(null);
+            };
+
+            if (showSplash) { return <SplashScreen onComplete={() => setShowSplash(false)} />; }
+            if (!isAuthenticated) { 
+                return <AuthScreen onLogin={(userObj) => { setCurrentUser(userObj); setIsAuthenticated(true); }} />; 
+            }
+            return <Dashboard user={currentUser} onLogout={handleLogout} onSwitchUser={(newUser) => setCurrentUser(newUser)} />;
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
